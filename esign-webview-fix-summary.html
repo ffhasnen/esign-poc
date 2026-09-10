@@ -237,7 +237,7 @@
 </style>
 
 <main>
-  <p class="eyebrow">IMobile &middot; CSP eSign</p>
+  <p class="eyebrow">Host App &middot; CSP eSign</p>
   <h1>Why eSign breaks in the WebView, and how to fix it</h1>
   <p class="lede">
     eSign currently opens Perfios in a separate Chrome tab instead of staying inside the app,
@@ -248,7 +248,7 @@
 
   <h2><span class="num">01</span>The problem</h2>
   <p>
-    IMobile calls an API to get a CSP URL, loads it in a native Android WebView, and the CSP page
+    The host app calls an API to get a CSP URL, loads it in a native Android WebView, and the CSP page
     (a Flutter web app) has an eSign button that calls <code>window.open()</code> to launch Perfios.
     That popup pattern assumes a real browser: a genuine popup window with a live
     <code>window.opener</code> reference back to the page that opened it, so the result can arrive
@@ -351,16 +351,16 @@
     <li>CspActivity delivers the result into WebView 1 with <code>evaluateJavascript("window.postMessage(json,'*')")</code> &mdash; landing on the Flutter app's own, unchanged <code>messageEventListener</code>.</li>
   </ol>
 
-  <h2><span class="num">03</span>What IMobile's team needs to build</h2>
+  <h2><span class="num">03</span>What the host app's team needs to build</h2>
   <p>
-    IMobile is React Native, using <code>react-native-webview</code> for the WebView. That library
+    The host app is React Native, using <code>react-native-webview</code> for the WebView. That library
     does <em>not</em> reliably support what this fix needs from the JS side: its own native code
     overwrites any custom <code>WebChromeClient</code> whenever other features are toggled, so the
     <code>onOpenWindow</code> prop can't be depended on to catch <code>window.open()</code> the way
     this fix requires.
   </p>
   <div class="callout">
-    <strong>This has to be native code, not RN props.</strong> The fix belongs in IMobile's native
+    <strong>This has to be native code, not RN props.</strong> The fix belongs in the host app's native
     Android project (the <code>android/</code> folder every RN app has) &mdash; a real native module,
     written in Kotlin or Java, doing exactly what <code>CspActivity</code>/<code>EsignActivity</code>
     do in the proof of concept: own the <code>WebChromeClient</code> directly, catch

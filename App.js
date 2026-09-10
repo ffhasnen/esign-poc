@@ -20,7 +20,7 @@ import { WebView } from 'react-native-webview';
 //   provider's domain) off to the system browser via Linking.openURL. This
 //   simulates the kind of native URL interception a banking app commonly
 //   has for security, and should reproduce "clicking eSign opens the web
-//   browser" exactly as seen in the real IMobile app.
+//   browser" exactly as seen in the real host app.
 //
 // - "bridge-fix": wires up onOpenWindow + javaScriptCanOpenWindowsAutomatically
 //   + setSupportMultipleWindows so the popup opens as an in-app modal WebView,

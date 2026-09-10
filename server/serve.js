@@ -5,8 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// Own-app port: serves outer.html (stands in for whatever page IMobile loads
-// first - its iframe now points at the real Flutter clone on CSP_PORT).
+// Own-app port: serves outer.html (stands in for whatever page the host app
+// loads first - its iframe now points at the real Flutter clone on CSP_PORT).
 const OWN_PORT = 8787;
 // Third-party port: serves popup.html (stands in for the Perfios/UIDAI eSign domain).
 const THIRD_PARTY_PORT = 8788;

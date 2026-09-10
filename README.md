@@ -2,9 +2,9 @@
 
 Reproduces and fixes: "eSign's `window.open()`/`postMessage` popup flow
 works in a normal mobile browser, but opens Perfios in a separate Chrome tab
-instead of staying inside IMobile's app, and the result never comes back."
+instead of staying inside the host app, and the result never comes back."
 
-**Confirmed architecture:** IMobile is a React Native app. Its WebView
+**Confirmed architecture:** the host app is a React Native app. Its WebView
 (`react-native-webview`, backed by `android.webkit.WebView` on Android)
 loads the CSP Flutter web app's URL **directly** - no wrapper page, no
 iframe. From inside the CSP app, eSign calls `window.open()`.
@@ -20,7 +20,7 @@ the app; the result can never arrive, in any configuration.
 before it escapes, show it in-app, and manually relay the result back -
 `window.opener` never enters into it. `react-native-webview`'s own native
 code overwrites any custom `WebChromeClient` config, so this has to be a
-real native Android module (Kotlin/Java) that IMobile's native project
+real native Android module (Kotlin/Java) that the host app's native project
 calls into, not something configurable through `react-native-webview`'s
 JS props. See [`android-kotlin-repro/`](android-kotlin-repro) for the
 working shape of it.
@@ -50,7 +50,7 @@ already pointed at the same hosted URLs.
 
 | Path | What it is |
 |---|---|
-| [`android-kotlin-repro/`](android-kotlin-repro) | Native Kotlin Android app. `MainActivity.kt` (launcher) &rarr; `CspActivity.kt` (WebView 1, loads the CSP URL directly, catches `window.open()` via `onCreateWindow`) &rarr; `EsignActivity.kt` (WebView 2, full screen, JS bridge back to CspActivity). This is the proof that the fix works, and the closest thing to what IMobile's native module needs to do. |
+| [`android-kotlin-repro/`](android-kotlin-repro) | Native Kotlin Android app. `MainActivity.kt` (launcher) &rarr; `CspActivity.kt` (WebView 1, loads the CSP URL directly, catches `window.open()` via `onCreateWindow`) &rarr; `EsignActivity.kt` (WebView 2, full screen, JS bridge back to CspActivity). This is the proof that the fix works, and the closest thing to what the host app's native module needs to do. |
 | [`csp-esign-clone/`](csp-esign-clone) | A minimal, real, compiled Flutter web app. `web/index.html` has the exact same `PerfiosEsign` class / `esignInitiate` / `esignProcess` JS as the real app (copied verbatim, with the two hygiene fixes described below), and `lib/main.dart` calls it the same way the real DBT confirmation screens do. Hosted at the URL above; rebuild with `flutter build web`. |
 | [`server/popup.html`](server/popup.html) | **PerfiosEsign Simulation** - stands in for the real Perfios/Aadhaar page. Hosted at the URL above; also served locally by `server/serve.js` on port 8788 if you want to run everything on your own network instead. |
 | [`server/serve.js`](server/serve.js) | Optional zero-dependency local static server, useful for local dev without redeploying to Firebase each time. Not required to try the hosted version above. |
@@ -77,12 +77,12 @@ as `RESULT: SUCCESS` / `RESULT: FAIL`, exactly as it did in the browser
 test above. That round trip - full screen swap, result relayed back -
 never touches `window.opener` at all.
 
-## What IMobile's team needs to build
+## What the host app's team needs to build
 
 `react-native-webview` does not reliably support what this fix needs from
 the JS side - its own native code overwrites any custom `WebChromeClient`
 whenever other features are toggled, so the `onOpenWindow` prop can't be
-depended on. The fix has to be a real native Android module in IMobile's
+depended on. The fix has to be a real native Android module in the host app's
 own `android/` project, doing what `CspActivity`/`EsignActivity` do here:
 
 - Own the WebView's `WebChromeClient` directly; catch `onCreateWindow()`.

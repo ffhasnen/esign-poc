@@ -7,8 +7,8 @@ import com.example.webviewrepro.databinding.ActivityMainBinding
 
 /**
  * Launcher screen: just a base URL field and a "Launch CSP" button that
- * starts CspActivity (WebView 1) full screen, exactly like IMobile would
- * launch the CSP servicing flow.
+ * starts CspActivity (WebView 1) full screen, exactly like the host app
+ * would launch the CSP servicing flow.
  */
 class MainActivity : AppCompatActivity() {
 

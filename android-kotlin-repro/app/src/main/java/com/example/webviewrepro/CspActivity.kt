@@ -14,8 +14,8 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.webviewrepro.databinding.ActivityCspBinding
 
 /**
- * WebView 1: loads the CSP (Flutter Web) page directly, full screen - IMobile
- * loads the CSP URL straight into its native WebView, no wrapper page and no
+ * WebView 1: loads the CSP (Flutter Web) page directly, full screen - the
+ * host app loads the CSP URL straight into its native WebView, no wrapper page and no
  * iframe in between.
  *
  * Its eSign button calls window.open() from the CSP page's own top-level
