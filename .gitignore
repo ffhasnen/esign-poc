@@ -1,0 +1,25 @@
+# Android build artifacts (regenerate with ./gradlew assembleDebug)
+android-kotlin-repro/local.properties
+android-kotlin-repro/.gradle/
+android-kotlin-repro/app/build/
+android-kotlin-repro/build/
+android-kotlin-repro/.idea/
+android-kotlin-repro/*.iml
+
+# Flutter build artifacts (regenerate with flutter build web)
+csp-esign-clone/build/
+csp-esign-clone/.dart_tool/
+csp-esign-clone/.idea/
+csp-esign-clone/*.iml
+
+# Superseded Expo/react-native-webview scaffold - has its own git repo and
+# node_modules, not pushed here. The single App.js at repo root is kept as a
+# lightweight reference to what it did.
+repro-app/
+
+# Firebase CLI local deploy cache
+.firebase/
+**/.firebase/
+
+# OS
+.DS_Store

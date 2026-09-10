@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PerfiosEsign Simulation</title>
+</head>
+<body style="font-family:sans-serif;padding:16px;margin:0;background:#fafafa;">
+  <h2 style="margin-top:0;">PerfiosEsign Simulation</h2>
+  <p style="color:#555;">Stands in for the real Perfios/UIDAI Aadhaar eSign page - this is what opens when <code>PerfiosEsign.esign(signUrl)</code> calls <code>window.open(signUrl)</code> in the Flutter clone.</p>
+  <p>window.opener: <b id="openerStatus"></b></p>
+  <button id="successBtn" style="padding:12px 20px;font-size:16px;margin-right:8px;">Simulate SUCCESS</button>
+  <button id="failBtn" style="padding:12px 20px;font-size:16px;">Simulate FAIL</button>
+
+  <script>
+    document.getElementById('openerStatus').textContent = window.opener ? 'present (real popup)' : 'NULL - no opener link!';
+
+    function finish(status) {
+      const payload = {
+        product: 'PERFIOS_ESIGN',
+        status: status,
+        uniqueId: 'demo-123',
+        message: status === 'FAIL' ? 'Simulated failure' : undefined
+      };
+      if (window.opener) {
+        // This is what works in a normal browser tab.
+        window.opener.postMessage(payload, '*');
+      } else if (window.AndroidEsignBridge) {
+        // No opener link (this popup is actually a separate native WebView
+        // rendered via WebChromeClient.onCreateWindow) - fall back to the
+        // Kotlin JavascriptInterface bridge instead.
+        window.AndroidEsignBridge.postMessage(JSON.stringify(payload));
+      } else if (window.ReactNativeWebView) {
+        // Same idea, for the react-native-webview variant of this repro.
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ESIGN_RESULT', payload: payload }));
+      } else {
+        alert('No window.opener and no native bridge - result cannot be delivered at all.');
+      }
+      window.close();
+    }
+
+    document.getElementById('successBtn').addEventListener('click', function () { finish('SUCCESS'); });
+    document.getElementById('failBtn').addEventListener('click', function () { finish('FAIL'); });
+  </script>
+</body>
+</html>

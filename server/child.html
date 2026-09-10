@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Child (iframe) - eSign</title>
+</head>
+<body style="font-family:sans-serif;padding:8px;margin:0;">
+  <h4 style="margin-top:0;">Iframe content (same pattern as PerfiosEsign in index.html)</h4>
+  <button id="startBtn" style="padding:10px 16px;font-size:16px;">Start eSign (window.open popup)</button>
+  <pre id="log" style="background:#111;color:#0f0;padding:8px;height:44vh;overflow:auto;white-space:pre-wrap;font-size:12px;margin-top:8px;"></pre>
+
+  <script>
+    function log(msg) {
+      const el = document.getElementById('log');
+      el.textContent += new Date().toLocaleTimeString() + '  ' + msg + '\n';
+      el.scrollTop = el.scrollHeight;
+      try {
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'CONSOLE_LOG', log: '[child] ' + msg }));
+        }
+      } catch (e) {}
+    }
+
+    var childWindow = null;
+    var intervalRef = null;
+    var product = 'PERFIOS_ESIGN';
+
+    function messageListener(e) {
+      const m = e.data;
+      if (m && m.product === product) {
+        log('messageEventListener FIRED: ' + JSON.stringify(m));
+        cleanup();
+      }
+    }
+
+    function cleanup() {
+      if (intervalRef) clearInterval(intervalRef);
+      window.removeEventListener('message', messageListener);
+    }
+
+    function thirdPartyPopupUrl() {
+      // Same host, port 8787 -> 8788: simulates the eSign provider being a
+      // different origin from the bank's own app, like the real Perfios/UIDAI URL.
+      const url = new URL(window.location.href);
+      url.port = '8788';
+      url.pathname = '/popup.html';
+      return url.toString();
+    }
+
+    function startEsign() {
+      const target = thirdPartyPopupUrl();
+      log('window.open(' + target + ') called (cross-origin, simulating the real eSign provider domain)...');
+      childWindow = window.open(
+        target, '_blank',
+        'toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=0,height=500,width=350'
+      );
+      log('window.open() returned: ' + (childWindow ? 'a window object' : 'NULL'));
+      if (!childWindow) {
+        log('>>> POPUP BLOCKED / UNSUPPORTED. This is bug #1 from the real app: the code has no null-check here, so it hangs forever waiting for a childWindow that never existed.');
+        return;
+      }
+      window.addEventListener('message', messageListener);
+      intervalRef = setInterval(function () {
+        if (childWindow && childWindow.closed) {
+          log('popup detected as closed, but no SUCCESS/FAIL message was ever received before that.');
+          cleanup();
+        }
+      }, 1000);
+    }
+
+    document.getElementById('startBtn').addEventListener('click', startEsign);
+    log('child.html loaded inside iframe. window.top === window.self? ' + (window.top === window.self) + ' (false = we are correctly nested, like the real app)');
+  </script>
+</body>
+</html>

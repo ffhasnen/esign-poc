@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A new Flutter project.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="csp_esign_clone">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>csp_esign_clone</title>
+  <link rel="manifest" href="manifest.json">
+
+  <script>
+    // Copied verbatim from the real app's web/index.html (same class/method
+    // names: PerfiosEsign, esignInitiate, esignProcess, esignCall) so the
+    // Dart side can call into it exactly the same way.
+    var isSuccess;
+    // Only accept eSign results from the real Perfios/UIDAI page. Add this
+    // app's own origin only if/when native code delivers results by running
+    // window.postMessage on this page directly (the Android fix) - that
+    // path still can't tell a genuine native delivery apart from a
+    // compromised script already running on this page, since both would
+    // show this same origin. A trusted-origin list only protects against
+    // OTHER pages/domains trying to fake a result.
+    var TRUSTED_ESIGN_ORIGINS = [
+      window.location.origin,
+      "https://example-app-ff--perfios-simulation-xrtyd1tg.web.app",
+    ];
+    class k {
+      childWindow;
+      callback;
+      intervalRef;
+      startedBackgroundProcess = !1;
+      response = null;
+      product = "PERFIOS_ESIGN";
+
+      constructor(E) {
+        this.callback = E.callback;
+        this.messageEventListener = this.messageEventListener.bind(this);
+      }
+
+      esign(E) {
+        if (!E) throw "URL is required";
+        this.openChildWindow(E);
+        this.backgroundProcess();
+      }
+
+      logToNative(msg) {
+        try {
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'CONSOLE_LOG', log: msg }));
+          }
+        } catch (error) {}
+      }
+
+      cancel() {
+        if (this.intervalRef) window.clearInterval(this.intervalRef);
+        window.removeEventListener("message", this.messageEventListener, !1);
+        this.startedBackgroundProcess = !1;
+        this.response = null;
+      }
+
+      backgroundProcess() {
+        window.addEventListener("message", this.messageEventListener, !1);
+        if (!this.childWindow) {
+          this.logToNative('PerfiosEsign: window.open returned null, childWindow missing - failing as PopupBlocked');
+          isSuccess = false;
+          this.messageToParent(!1, void 0, "PopupBlocked");
+          return;
+        }
+        this.intervalRef = window.setInterval(() => {
+          if (this.childWindow?.closed && !this.response) {
+            isSuccess = false;
+            this.messageToParent(!1, void 0, "Cancelled");
+          }
+        }, 1000);
+        this.startedBackgroundProcess = !0;
+      }
+
+      messageToParent(E, m, f) {
+        isSuccess = E ? true : false;
+        this.response = {
+          status: E ? "SUCCESS" : "FAIL",
+          ...m && { documentId: m },
+          ...f && { error: f }
+        };
+        // What PerfiosEsign actually hands to the callback, after reshaping
+        // the raw message - exposed alongside esignRawPayload for comparison.
+        window.esignResponse = JSON.stringify(this.response);
+        try {
+          this.callback(this.response);
+        } catch (error) {}
+        this.cancel();
+      }
+
+      openChildWindow(E) {
+        this.childWindow && this.childWindow.close();
+        const m = 0.85 * screen.height,
+          f = 0.5 * screen.width,
+          w = 0.25 * screen.width;
+        this.childWindow = window.open(E, "_blank", `toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=0,height=${m},width=${f},top=0,left=${w}`);
+        if (!this.childWindow) {
+          this.logToNative('PerfiosEsign: window.open() returned null for url ' + E);
+        }
+      }
+
+      messageEventListener(E) {
+        if (!TRUSTED_ESIGN_ORIGINS.includes(E.origin)) {
+          this.logToNative('PerfiosEsign: ignored message from untrusted origin ' + E.origin);
+          return;
+        }
+        const m = E.data;
+        if (m.product === this.product) {
+          // Raw payload as received from the eSign page, before PerfiosEsign
+          // reshapes it into {status, documentId, error} - exposed for the
+          // Dart side to display in full.
+          window.esignRawPayload = JSON.stringify(m);
+          if (m.status === "SUCCESS") {
+            this.messageToParent(!0, m.uniqueId);
+            isSuccess = true;
+          } else if (m.status === "FAIL") {
+            isSuccess = false;
+            this.messageToParent(!1, m.uniqueId, m.message);
+            isSuccess = false;
+          }
+        }
+      }
+
+      esignCall(url) {
+        try {
+          esignInitiate(url);
+        } catch (error) {}
+      }
+    }
+
+    window.PerfiosEsign = k;
+
+    callback = (response) => {
+      try {
+        this.displayWaitingModal(false);
+      } catch (error) {}
+      if (response.status === 'SUCCESS') {
+        try {
+          isSuccess = true;
+          this.getSignedDoc();
+        } catch (error) {}
+      } else if (response.status === 'FAIL') {
+        try {
+          isSuccess = false;
+          this.deleteEsignDoc();
+        } catch (error) {}
+      }
+    };
+
+    esignInitiate = (signUrl) => {
+      try {
+        this.displayWaitingModal(true);
+      } catch (error) {}
+      let obj = {
+        logoUrl: '',
+        callback: (response) => {
+          return this.callback(response);
+        }
+      };
+      const esignSdk = new PerfiosEsign(obj);
+      esignSdk.esign(signUrl);
+    };
+
+    window.esignInitiate = esignInitiate;
+
+    window.esignProcess = new PerfiosEsign({
+      callback: (response) => {}
+    });
+  </script>
+</head>
+<body>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

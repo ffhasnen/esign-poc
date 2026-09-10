@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Outer page (top-level WebView page)</title>
+</head>
+<body style="font-family:sans-serif;padding:12px;margin:0;">
+  <h3 style="margin-top:0;">Outer page</h3>
+  <p>Simulates the page IMobile's WebView loads at the top level. It embeds the KYC eSign flow (the real compiled Flutter clone, port 8789) in a nested iframe, exactly like <code>servicingFFOld</code> is embedded in the real app.</p>
+  <iframe id="kycFrame" name="kycFrame" style="width:100%;height:65vh;border:1px solid #ccc;"></iframe>
+  <script>
+    // Own origin is :8787 - the real CSP clone is served on :8788+1=8789.
+    var url = new URL(window.location.href);
+    url.port = '8789';
+    url.pathname = '/';
+    document.getElementById('kycFrame').src = url.toString();
+  </script>
+</body>
+</html>
