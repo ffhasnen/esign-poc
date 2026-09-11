@@ -25,6 +25,14 @@ calls into, not something configurable through `react-native-webview`'s
 JS props. See [`android-kotlin-repro/`](android-kotlin-repro) for the
 working shape of it.
 
+![Flow diagram: MainActivity starts CspActivity (WebView 1, the Flutter CSP app). Tapping eSign calls window.open, caught by onCreateWindow, which starts EsignActivity (WebView 2) full screen. EsignActivity finishes and hands the result back to CspActivity, which delivers it into WebView 1 via evaluateJavascript and window.postMessage. A marker notes that window.opener.postMessage, the normal browser mechanism, does not exist here.](esign-flow-diagram.svg)
+
+The blue path is the actual route the result travels - crossing native Kotlin
+code, never web-to-web directly. The red marker shows what a normal browser
+popup would use to send a result back (`window.opener.postMessage`) - not
+available here, since WebView 1 and WebView 2 are separate, unrelated
+instances.
+
 ## Try it in under a minute (hosted, no setup)
 
 Everything is already built and hosted on Firebase - no local server
